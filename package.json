@@ -4,11 +4,15 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "private": true,
+  "engines": {
+    "node": "15.x"
+  },
   "dependencies": {
     "express": "^4.17.1"
   }
