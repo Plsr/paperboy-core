@@ -21,7 +21,7 @@ router.post("/", async (req, res) => {
     const newBookmark = await bookmark.save();
     res.status(201).json(newBookmark);
   } catch (error) {
-    res.status(400).json({ message: error.messate });
+    res.status(400).json({ message: error.message });
   }
 });
 
