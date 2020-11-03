@@ -18,7 +18,7 @@ db.once("open", () => console.log("Connected to database"));
 app.use(bodyParser.json());
 
 // Routes
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.send("Hello, world!");
 });
 
