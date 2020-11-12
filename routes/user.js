@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
 const User = require("../models/user");
+const userService = require("../services/user-service");
 const jwt = require("jsonwebtoken");
 
 // FIXME: Remove once work on the feature is done
@@ -28,7 +29,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/me", verifyToken, (req, res) => {
+router.get("/me", extractAuthToken, (req, res) => {
   jwt.verify(req.token, "super-secret-key", (err, authData) => {
     if (err) return res.sendStatus(403);
     res.json({ authData });
@@ -43,20 +44,10 @@ router.post("/login", async (req, res) => {
     if (!user) return res.status(401).end();
 
     if (await bcrypt.compare(password, user.hashedPassword)) {
-      const exposedUser = {
-        id: user.id,
-        email: user.email,
-      };
+      const refreshToken = await userService.generateRefreshToken(user).save();
+      const accessToken = userService.generateJwt(user);
 
-      jwt.sign(
-        { exposedUser },
-        "super-secret-key",
-        { expiresIn: "30s" },
-        (err, token) => {
-          if (token) res.status(200).json({ token });
-          if (error) res.status(500).json({ message: err.message });
-        }
-      );
+      res.json({ refreshToken: refreshToken.token, accessToken });
     } else {
       res.status(401).end();
     }
@@ -65,9 +56,25 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// TODO: Check if the refresh token is valid
+// If so, create a new one and also issue a new access token
+router.post("/refresh-token", async (req, res) => {
+  try {
+    const refreshToken = await userService.getRefreshToken(
+      req.body.refreshToken
+    );
+    const newRefreshToken = await userService.updateRefreshToken(refreshToken);
+
+    const accessToken = userService.generateJwt(refreshToken.user);
+    res.json({ accessToken, refreshToken: newRefreshToken.token });
+  } catch (error) {
+    res.status(403).json({ message: error.message });
+  }
+});
+
 // TODO: Move somewhere more accessible as it will be needed by other
 // parts of the server as well in the future
-function verifyToken(req, res, next) {
+function extractAuthToken(req, res, next) {
   const bearerHeader = req.headers["authorization"];
   if (!bearerHeader) return res.sendStatus(403);
 
